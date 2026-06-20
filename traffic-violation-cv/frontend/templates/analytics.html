@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Analytics - Traffic Violation CV{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold mb-4">Analytics &amp; reporting</h1>
+
+<div class="grid sm:grid-cols-3 gap-4 mb-6">
+  <div class="bg-white rounded-lg shadow p-4">
+    <div class="text-3xl font-bold">{{ stats.n_evidence }}</div>
+    <div class="text-sm text-slate-500">Images processed</div>
+  </div>
+  <div class="bg-white rounded-lg shadow p-4">
+    <div class="text-3xl font-bold text-red-700">{{ stats.n_violations }}</div>
+    <div class="text-sm text-slate-500">Total violations</div>
+  </div>
+  <div class="bg-white rounded-lg shadow p-4">
+    <div class="text-3xl font-bold">{{ stats.by_type|length }}</div>
+    <div class="text-sm text-slate-500">Distinct violation types</div>
+  </div>
+</div>
+
+<div class="grid md:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white rounded-lg shadow p-4">
+    <h2 class="font-semibold mb-2">Violations by type</h2>
+    <div style="height:300px"><canvas id="byType" aria-label="Bar chart of violations by type"></canvas></div>
+  </div>
+  <div class="bg-white rounded-lg shadow p-4">
+    <h2 class="font-semibold mb-2">Daily trend</h2>
+    <div style="height:300px"><canvas id="byDay" aria-label="Line chart of daily violation counts"></canvas></div>
+  </div>
+</div>
+
+<div class="bg-white rounded-lg shadow p-4">
+  <h2 class="font-semibold mb-2">Top flagged plates</h2>
+  {% if stats.top_plates %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-100 text-left"><tr><th class="px-3 py-2">Plate</th><th class="px-3 py-2">Violations</th></tr></thead>
+    <tbody>
+      {% for p in stats.top_plates %}
+      <tr class="border-t border-slate-100"><td class="px-3 py-2 font-mono">{{ p.plate }}</td><td class="px-3 py-2">{{ p.count }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-sm text-slate-500">No plate data yet (needs EasyOCR + readable plates).</p>
+  {% endif %}
+</div>
+
+<div class="mt-6 bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-600">
+  <strong>Executive summary:</strong>
+  {{ stats.n_violations }} violations across {{ stats.n_evidence }} processed images.
+  {% if top_type[0] %}Most common: <strong>{{ label_map[top_type[0]] if top_type[0] in label_map else top_type[0] }}</strong> ({{ top_type[1] }} cases).{% endif %}
+  Prioritise enforcement on the highest-frequency category and the top flagged plates above.
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const byType = {{ stats.by_type|tojson }};
+  const byDay = {{ stats.by_day|tojson }};
+  const labelMap = {{ label_map|tojson }};
+  const typeLabels = Object.keys(byType).map(k => labelMap[k] || k);
+
+  new Chart(document.getElementById('byType'), {
+    type: 'bar',
+    data: { labels: typeLabels,
+            datasets: [{ label: 'Count', data: Object.values(byType),
+                         backgroundColor: '#1e293b' }] },
+    options: { responsive: true, maintainAspectRatio: false,
+               scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+               plugins: { legend: { display: false } } }
+  });
+
+  new Chart(document.getElementById('byDay'), {
+    type: 'line',
+    data: { labels: Object.keys(byDay),
+            datasets: [{ label: 'Violations', data: Object.values(byDay),
+                         borderColor: '#b91c1c', backgroundColor: 'rgba(185,28,28,.15)',
+                         fill: true, tension: .25 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+               scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+</script>
+{% endblock %}

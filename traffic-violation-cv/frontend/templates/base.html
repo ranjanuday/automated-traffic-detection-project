@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Traffic Violation CV{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <style>
+    [x-cloak]{display:none}
+    body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
+  <header class="bg-slate-900 text-white">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2 font-bold text-lg">
+        <span aria-hidden="true"></span> Traffic Violation CV
+      </a>
+      <nav aria-label="Main navigation" class="flex gap-1 text-sm">
+        {% set nav = [('/', 'Analyze'), ('/records', 'Records'), ('/analytics', 'Analytics')] %}
+        {% for href, label in nav %}
+        <a href="{{ href }}"
+           class="px-3 py-2 rounded hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">{{ label }}</a>
+        {% endfor %}
+      </nav>
+    </div>
+  </header>
+
+  {% if backend and backend.demo %}
+  <div role="status" class="bg-amber-100 text-amber-900 text-sm text-center py-2 px-4 border-b border-amber-300">
+     <strong>Demo mode</strong> — heavy ML models not installed, using a mock detector.
+    Run <code class="bg-amber-200 px-1 rounded">uv pip install -e ".[ml]"</code> for real YOLO + OCR inference.
+  </div>
+  {% endif %}
+
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="bg-slate-900 text-slate-300 text-xs text-center py-3">
+    Computer-vision traffic violation pipeline · YOLOv8 + EasyOCR · prototype
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

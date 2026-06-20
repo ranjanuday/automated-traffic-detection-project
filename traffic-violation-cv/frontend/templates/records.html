@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Records - Traffic Violation CV{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold mb-4">Violation records</h1>
+
+<form class="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap gap-3 items-end"
+      hx-get="/records/table" hx-target="#rec-table" hx-trigger="submit, change from:select, keyup changed delay:400ms from:input">
+  <div>
+    <label for="vtype" class="block text-xs font-medium mb-1">Violation type</label>
+    <select id="vtype" name="vtype" class="border border-slate-300 rounded px-2 py-1 text-sm">
+      <option value="">All</option>
+      {% for key, m in vtypes.items() %}
+      <option value="{{ key }}" {% if key==f_vtype %}selected{% endif %}>{{ m.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="plate" class="block text-xs font-medium mb-1">Plate contains</label>
+    <input id="plate" name="plate" value="{{ f_plate }}" placeholder="e.g. KA01"
+           class="border border-slate-300 rounded px-2 py-1 text-sm uppercase">
+  </div>
+  <button class="bg-slate-900 text-white px-3 py-1.5 rounded text-sm hover:bg-slate-700">Search</button>
+</form>
+
+<div id="rec-table" class="bg-white rounded-lg shadow overflow-x-auto">
+  {% include "_records_table.html" %}
+</div>
+{% endblock %}

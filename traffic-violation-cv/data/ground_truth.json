@@ -1,0 +1,12 @@
+{
+  "moto_4.jpg": {"violations": ["no_helmet"]},
+  "moto_0.jpg": {"violations": []},
+  "moto_1.jpg": {"violations": []},
+  "moto_2.jpg": {"violations": []},
+  "moto_3.jpg": {"violations": []},
+  "moto_5.jpg": {"violations": []},
+  "rickshaw_1.jpg": {"violations": []},
+  "rickshaw_2.jpg": {"violations": []},
+  "real_bus.jpg": {"violations": []},
+  "driver_0.jpg": {"violations": []}
+}

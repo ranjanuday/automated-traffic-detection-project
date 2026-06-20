@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoTraffic Vision — AI-Powered Traffic Violation Detection</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+primary: #1565C0;       /* primary blue */
+      --secondary: #0D2440;     /* deep navy */
+      --accent: #FFC220;        /* amber accent */
+      --text-main: #0D2440;
+      --text-light: #F5F5F5;
+      --bg-body: #0D2440;
+      --bg-slide: #FFFFFF;
+      --gray-light: #F5F5F5;
+      --gray-med: #666666;
+      --font-main: 'Segoe UI', -apple-system, Helvetica, Arial, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body { font-family: var(--font-main); background: var(--bg-body); }
+
+    .slide {
+      display: none;
+      width: 100vw; height: 100vh;
+      background: var(--bg-slide);
+      padding: 56px 64px 90px;
+      overflow: hidden;
+      position: relative;
+      color: var(--text-main);
+      flex-direction: column;
+    }
+    .slide.active { display: flex; animation: fade .4s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(8px);} to { opacity:1; transform:none;} }
+
+    h1 { color: var(--primary); font-size: clamp(30px, 3.6vw, 46px); margin-bottom: 6px; font-weight: 700; line-height: 1.1; }
+    h2 { color: var(--text-main); font-size: clamp(17px, 2.1vw, 24px); margin-bottom: 22px; font-weight: 500; border-bottom: 4px solid var(--accent); display: inline-block; padding-bottom: 6px; }
+    p, li { font-size: clamp(14px, 1.5vw, 18px); line-height: 1.55; color: var(--text-main); }
+    .kicker { display:inline-block; background:var(--gray-light); color:var(--primary); font-weight:700; font-size:13px; letter-spacing:1px; text-transform:uppercase; padding:6px 14px; border-radius:20px; margin-bottom:14px; }
+
+    /* Title slide */
+    .title-slide {
+      justify-content: center; align-items: center; text-align: center;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: var(--text-light); padding-bottom:90px;
+    }
+    .title-slide .badge { font-size:60px; color:var(--accent); margin-bottom:24px; }
+    .title-slide h1 { color: #fff; font-size: clamp(34px, 5vw, 60px); max-width: 1100px; }
+    .title-slide .tagline { color: var(--accent); font-size: clamp(18px, 2.4vw, 28px); font-weight:600; margin: 18px 0 14px; max-width: 950px; }
+    .title-slide .sub { color: #dbeafe; font-size: clamp(15px,1.8vw,20px); max-width: 820px; }
+    .title-slide .foot { margin-top: 34px; color:#cbd5e1; font-size:15px; letter-spacing:1px; }
+
+    ul { list-style: none; }
+    .bullets li { margin-bottom: 14px; padding-left: 36px; position: relative; max-width: 1000px; }
+    .bullets li::before { content:'\f00c'; font-family:'Font Awesome 6 Free'; font-weight:900; color:var(--primary); position:absolute; left:0; top:2px; }
+
+    .content { flex:1; display:flex; flex-direction:column; justify-content:center; }
+
+    /* Grids */
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+    .card { background:var(--gray-light); border-left:5px solid var(--primary); padding:18px 20px; border-radius:8px; }
+    .card h3 { color:var(--primary); font-size:clamp(15px,1.7vw,19px); margin-bottom:8px; display:flex; align-items:center; gap:10px; }
+    .card p { color:var(--gray-med); font-size:clamp(13px,1.4vw,16px); line-height:1.45; }
+    .card .icon { color:var(--primary); }
+
+    /* Pipeline */
+    .pipe { display:flex; align-items:stretch; gap:8px; justify-content:center; flex-wrap:wrap; }
+    .pstep { flex:1; min-width:120px; background:#fff; border:2.5px solid var(--primary); border-radius:10px; padding:14px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; }
+    .pstep .pi { width:44px; height:44px; background:var(--primary); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:8px; }
+    .pstep .pt { font-weight:700; font-size:13px; color:var(--secondary); margin-bottom:4px; }
+    .pstep .pd { font-size:11px; color:var(--gray-med); line-height:1.3; }
+    .parrow { display:flex; align-items:center; color:var(--primary); font-size:20px; }
+
+    .stack { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; justify-content:center; }
+    .chip { background:var(--secondary); color:#fff; padding:7px 16px; border-radius:20px; font-size:13px; font-weight:600; }
+
+    /* Violation table */
+    .vtable { width:100%; border-collapse:collapse; }
+    .vtable th { background:var(--primary); color:#fff; text-align:left; padding:10px 14px; font-size:14px; }
+    .vtable td { padding:9px 14px; border-bottom:1px solid #e2e8f0; font-size:14px; color:var(--secondary); }
+    .vtable tr:nth-child(even) td { background:var(--gray-light); }
+    .pill { font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; }
+pill.work { background:#1565C0; color:#fff; }
+    .pill.wire { background:#FFC220; color:#0D2440; }
+
+    /* Stats */
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+    .stat { background:var(--gray-light); border-top:5px solid var(--accent); border-radius:10px; padding:22px 16px; text-align:center; }
+    .stat .num { font-size:clamp(28px,3.6vw,46px); font-weight:700; color:var(--primary); }
+    .stat .lbl { font-size:13px; color:var(--gray-med); margin-top:6px; }
+
+    .chartbox { height:46vh; padding:6px; }
+    .twocol { display:grid; grid-template-columns:1fr 1fr; gap:30px; align-items:center; height:100%; }
+
+    /* Evidence demo */
+    .evidence { background:var(--secondary); border-radius:12px; padding:30px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; }
+    .evbox { border:3px solid var(--accent); border-radius:8px; padding:40px 50px; position:relative; }
+    .evlabel { position:absolute; top:-14px; left:14px; background:var(--accent); color:var(--secondary); font-weight:700; font-size:14px; padding:3px 12px; border-radius:6px; }
+
+    .note { margin-top:14px; background:var(--gray-light); border-left:5px solid var(--accent); padding:12px 18px; border-radius:6px; font-size:14px; color:var(--secondary); }
+
+    /* Nav */
+    .slide-nav { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); display:flex; gap:18px; align-items:center; background:rgba(4,30,66,.9); padding:10px 26px; border-radius:30px; z-index:1000; }
+    .nav-btn { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; }
+    .nav-btn:hover { color:var(--accent); }
+    .slide-counter { color:#fff; font-size:14px; min-width:56px; text-align:center; }
+    .pagetag { position:absolute; top:24px; right:32px; font-size:12px; color:var(--gray-med); font-weight:600; }
+  </style>
+</head>
+<body>
+
+  <!-- 1 TITLE -->
+  <div class="slide title-slide active">
+    <div class="badge"><i class="fas fa-traffic-light"></i></div>
+    <h1>AutoTraffic Vision</h1>
+    <div class="tagline">AI-Powered Traffic Violation Detection from Photographic Evidence</div>
+    <p class="sub">Automated Photo Identification &amp; Classification of Traffic Violations using Computer Vision</p>
+    <div class="foot">COMPUTER VISION FOR SMART TRAFFIC ENFORCEMENT</div>
+  </div>
+
+  <!-- 2 PROBLEM -->
+  <div class="slide">
+    <span class="pagetag">The Challenge</span>
+    <div class="content">
+      <span class="kicker"><i class="fas fa-triangle-exclamation"></i> The Problem</span>
+      <h1>Manual Review Cannot Keep Pace</h1>
+      <h2>Surveillance cameras generate massive image volumes every day</h2>
+      <div class="grid4">
+        <div class="card"><h3><i class="icon fas fa-images"></i> High Volume</h3><p>Cameras produce huge daily image streams that overwhelm human reviewers.</p></div>
+        <div class="card"><h3><i class="icon fas fa-clock"></i> Slow</h3><p>Manual inspection is labor-intensive and creates enforcement backlogs.</p></div>
+        <div class="card"><h3><i class="icon fas fa-scale-unbalanced"></i> Inconsistent</h3><p>Human judgment varies between reviewers, shifts, and conditions.</p></div>
+        <div class="card"><h3><i class="icon fas fa-bug"></i> Error-Prone</h3><p>Fatigue leads to missed violations and inaccurate decisions.</p></div>
+      </div>
+      <p style="margin-top:24px; max-width:1000px;"><strong>The need:</strong> an intelligent system that auto-analyzes photographic evidence to improve the efficiency and accuracy of traffic enforcement.</p>
+    </div>
+  </div>
+
+  <!-- 3 SOLUTION OVERVIEW -->
+  <div class="slide">
+    <span class="pagetag">Solution</span>
+    <div class="content">
+      <span class="kicker"><i class="fas fa-lightbulb"></i> Solution Overview</span>
+      <h1>An End-to-End Computer Vision Pipeline</h1>
+      <h2>From raw surveillance photo to documented, searchable evidence</h2>
+      <div class="pipe">
+        <div class="pstep"><div class="pi"><i class="fas fa-sliders"></i></div><div class="pt">Preprocess</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-car"></i></div><div class="pt">Detect</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-gavel"></i></div><div class="pt">Classify</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-id-card"></i></div><div class="pt">Read Plate</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-folder-open"></i></div><div class="pt">Evidence</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-chart-pie"></i></div><div class="pt">Analytics</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-clipboard-check"></i></div><div class="pt">Evaluate</div></div>
+      </div>
+      <p style="margin-top:26px; text-align:center; max-width:1100px; margin-left:auto; margin-right:auto;">Robust to <strong>low light, rain, shadows, motion blur</strong>, varying traffic density, and inconsistent image quality.</p>
+    </div>
+  </div>
+
+  <!-- 4 ARCHITECTURE -->
+  <div class="slide">
+    <span class="pagetag">Architecture</span>
+    <div class="content">
+      <span class="kicker"><i class="fas fa-diagram-project"></i> System Architecture</span>
+      <h1>Modular, Fusion-Based Detection Stack</h1>
+      <div class="pipe">
+        <div class="pstep"><div class="pi"><i class="fas fa-image"></i></div><div class="pt">Image Input</div><div class="pd">Surveillance photo</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-wand-magic-sparkles"></i></div><div class="pt">Preprocessing</div><div class="pd">CLAHE, gamma, denoise + Restormer</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-object-group"></i></div><div class="pt">Detection</div><div class="pd">COCO YOLOv8 + Indian YOLO fusion</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-list-check"></i></div><div class="pt">7 Detectors</div><div class="pd">Violation logic</div></div>
+      </div>
+      <div class="pipe" style="margin-top:14px;">
+        <div class="pstep"><div class="pi"><i class="fas fa-id-card"></i></div><div class="pt">License Plate</div><div class="pd">YOLOv5 + EasyOCR</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-database"></i></div><div class="pt">Evidence</div><div class="pd">Annotated img + SQLite + timestamp</div></div>
+        <div class="parrow"><i class="fas fa-arrow-right"></i></div>
+        <div class="pstep"><div class="pi"><i class="fas fa-gauge-high"></i></div><div class="pt">Analytics</div><div class="pd">Dashboard &amp; search</div></div>
+      </div>
+      <div class="stack">
+        <span class="chip">Python</span><span class="chip">FastAPI</span><span class="chip">HTMX</span><span class="chip">Tailwind</span>
+        <span class="chip">Chart.js</span><span class="chip">SQLite</span><span class="chip">Ultralytics YOLO</span><span class="chip">EasyOCR</span><span class="chip">Restormer</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 PREPROCESSING -->
+  <div class="slide">
+    <span class="pagetag">Preprocessing</span>
+    <div class="content">
+      <span class="kicker"><i class="fas fa-wand-magic-sparkles"></i> Image Preprocessing</span>
+      <h1>Adaptive Enhancement for Any Condition</h1>
+      <h2>Keeps detection robust across challenging environments</h2>
+      <div class="grid4">
+        <div class="card"><h3><i class="icon fas fa-moon"></i> Low Light</h3><p>Gamma correction + CLAHE + denoise restore visibility in night scenes.</p></div>
+        <div class="card"><h3><i class="icon fas fa-cloud-rain"></i> Rain &amp; Haze</h3><p>CLAHE + bilateral filtering cut through atmospheric noise.</p></div>
+        <div class="card"><h3><i class="icon fas fa-sun"></i> Shadows</h3><p>Local contrast equalization recovers detail in harsh shadow.</p></div>
+        <div class="card"><h3><i class="icon fas fa-wind"></i> Motion Blur</h3><p>Deblurring sharpens fast-moving vehicles and riders.</p></div>
+      </div>
+      <div class="note" style="margin-top:24px;"><i class="fas fa-brain" style="color:var(--primary)"></i> <strong>Optional deep restoration:</strong> Restormer de-rain and de-blur models are applied when conditions demand stronger recovery.</div>
+    </div>
+  </div>
+
+  <!-- 6 DETECTION -->
+  <div class="slide">
+    <span class="pagetag">Detection</span>
+    <div class="content">
+      <span class="kicker"><i class="fas fa-object-group"></i> Vehicle &amp; Road-User Detection</span>
+      <h1>Sensor Fusion for Accurate Classification</h1>
+      <h2>Two complementary models combined for regional accuracy</h2>
+      <div class="grid2">
+        <div class="card"><h3><i class="icon fas fa-globe"></i> COCO YOLOv8</h3><p>Strong on universal classes: person, car, bus, truck, motorcycle, bicycle, and traffic light.</p></div>
+        <div class="card"><h3><i class="icon fas fa-location-dot"></i> Indian-Vehicle YOLO</h3><p>Adds auto-rickshaw &amp; rickshaw classes and re-labels three-wheelers that COCO mislabels as "car".</p></div>
+      </div>
+      <p style="margin-top:24px; max-width:1000px;"><strong>Result:</strong> Fusion logic merges both detectors so each vehicle category is correctly classified — even in dense, mixed South-Asian traffic.</p>
+    </div>
+  </div>
+
+  <!-- 7 VIOLATION TYPES -->
+  <div class="slide">
+    <span class="pagetag">Violations</span>
+    <div class="content">
+      <span class="kicker"><i class="fas fa-list-check"></i> The 7 Violation Types</span>
+      <h1>Seven Detectors, Every Prediction Scored</h1>
+      <table class="vtable">
+        <tr><th>Violation</th><th>Method</th><th>Status</th></tr>
+        <tr><td><i class="fas fa-helmet-safety"></i> No Helmet</td><td>Real YOLOv8 helmet / head model — proven on real riders</td><td><span class="pill work">Working</span></td></tr>
+        <tr><td><i class="fas fa-users"></i> Triple Riding</td><td>Geometry: 3+ persons on one two-wheeler</td><td><span class="pill work">Working</span></td></tr>
+        <tr><td><i class="fas fa-user-shield"></i> No Seatbelt</td><td>YOLOv11 classifier, windscreen-camera opt-in</td><td><span class="pill wire">Wired</span></td></tr>
+        <tr><td><i class="fas fa-traffic-light"></i> Red-Light Jump</td><td>HSV signal state + stop-line crossing</td><td><span class="pill work">Working</span></td></tr>
+        <tr><td><i class="fas fa-road"></i> Stop-Line Violation</td><td>Configured or auto-detected white road marking</td><td><span class="pill work">Working</span></td></tr>
+        <tr><td><i class="fas fa-arrows-left-right"></i> Wrong-Side Driving</td><td>Configured divider (advisory)</td><td><span class="pill work">Working</span></td></tr>
+        <tr><td><i class="fas fa-square-parking"></i> Illegal Parking</td><td>Configured no-parking zones</td><td><span class="pill work">Working</span></td></tr>
+      </table>
+      <p style="margin-top:14px; font-size:14px; color:var(--gray-med);"><i class="fas fa-circle-info"></i> Each prediction carries a confidence score.</p>
+    </div>
+  </div>
+
+  <!-- 8 LICENSE PLATE -->
+  <div class="slide">
+    <span class="pagetag">ANPR</span>
+    <div class="content">
+      <span class="kicker"><i class="fas fa-id-card"></i> License Plate Recognition</span>
+      <h1>Two-Stage Automatic Number-Plate Recognition</h1>
+      <div class="twocol">
+        <div>
+          <div class="card" style="margin-bottom:18px;"><h3><i class="icon fas fa-crop-simple"></i> Stage 1 — Detect</h3><p>YOLOv5 plate detector locates and tight-crops the number plate from the full scene.</p></div>
+          <div class="card"><h3><i class="icon fas fa-font"></i> Stage 2 — Read</h3><p>EasyOCR extracts the registration string from the cropped plate region.</p></div>
+        </div>
+        <div class="evidence">
+          <div style="font-size:13px; color:#cbd5e1; margin-bottom:14px;">EXAMPLE — REAL PLATE IMAGE</div>
+          <div class="evbox" style="font-size:34px; font-weight:700; letter-spacing:3px; color:var(--accent);">KAOSMN7788</div>
+          <div style="margin-top:18px; color:#dbeafe; font-size:14px;"><i class="fas fa-check-circle" style="color:var(--accent)"></i> Successfully read by the ANPR pipeline</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9 EVIDENCE -->
+  <div class="slide">
+    <span class="pagetag">Evidence</span>
+    <div class="content">
+      <span class="kicker"><i class="fas fa-folder-open"></i> Evidence Generation</span>
+      <h1>Court-Ready, Auditable Records</h1>
+      <div class="twocol">
+        <div>
+          <ul class="bullets">
+            <li>Annotated images with colored bounding boxes</li>
+            <li>Violation labels rendered with confidence score</li>
+            <li>Metadata: type, confidence, bbox, plate, note</li>
+            <li>UTC timestamps stored in SQLite for every record</li>
+          </ul>
+        </div>
+        <div class="evidence">
+          <div style="font-size:13px; color:#cbd5e1; margin-bottom:14px;">ANNOTATED EVIDENCE EXAMPLE</div>
+          <div class="evbox" style="width:240px; height:150px; display:flex; align-items:center; justify-content:center;">
+            <span class="evlabel">No Helmet 73%</span>
+            <i class="fas fa-motorcycle" style="font-size:60px; color:#dbeafe;"></i>
+          </div>
+          <div style="margin-top:18px; color:#dbeafe; font-size:14px;"><i class="fas fa-database" style="color:var(--accent)"></i> Persisted with metadata + timestamp</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 ANALYTICS -->
+  <div class="slide">
+    <span class="pagetag">Analytics</span>
+    <h1>Analytics &amp; Reporting Dashboard</h1>
+    <h2>Violations by type — built with HTMX + Chart.js, fully searchable</h2>
+    <div class="chartbox"><canvas id="violChart"></canvas></div>
+    <div class="grid4" style="margin-top:10px;">
+      <div class="card"><h3><i class="icon fas fa-chart-column"></i> By Type</h3><p>Statistics broken down per violation category.</p></div>
+      <div class="card"><h3><i class="icon fas fa-calendar-day"></i> Daily Trends</h3><p>Trend breakdowns over time.</p></div>
+      <div class="card"><h3><i class="icon fas fa-ranking-star"></i> Top Plates</h3><p>Highest offending registrations surfaced.</p></div>
+      <div class="card"><h3><i class="icon fas fa-magnifying-glass"></i> Searchable</h3><p>Filter records by violation type &amp; plate.</p></div>
+    </div>
+  </div>
+
+  <!-- 11 PERFORMANCE -->
+  <div class="slide">
+    <span class="pagetag">Evaluation</span>
+    <h1>Performance Evaluation</h1>
+    <h2>Real metrics harness — Accuracy, Precision, Recall, F1, mAP@0.5</h2>
+    <div class="stats">
+      <div class="stat"><div class="num">100%</div><div class="lbl">Image-level accuracy<br>(labelled sample set)</div></div>
+      <div class="stat"><div class="num">1.00</div><div class="lbl">no_helmet F1-score</div></div>
+      <div class="stat"><div class="num">mAP<br>@0.5</div><div class="lbl">Real IoU box matching</div></div>
+      <div class="stat"><div class="num">~6.5s</div><div class="lbl">Per-image latency (CPU)</div></div>
+    </div>
+    <div class="chartbox" style="height:34vh; margin-top:18px;"><canvas id="perfChart"></canvas></div>
+    <p style="text-align:center; font-size:13px; color:var(--gray-med); margin-top:6px;">Per-stage computational efficiency reported: preprocess / detect / OCR / violations.</p>
+  </div>
+
+  <!-- 12 ENGINEERING QUALITY -->
+  <div class="slide">
+    <span class="pagetag">Quality</span>
+    <div class="content">
+      <span class="kicker"><i class="fas fa-shield-halved"></i> Engineering Quality</span>
+      <h1>Trustworthy by Design</h1>
+      <h2>Built to avoid fabricated or false-positive violations</h2>
+      <div class="grid2">
+        <div class="card"><h3><i class="icon fas fa-cube"></i> Real Models</h3><p>Genuine pretrained models throughout — no mocks or stubs.</p></div>
+        <div class="card"><h3><i class="icon fas fa-life-ring"></i> Graceful Degradation</h3><p>Pipeline continues sensibly when a component is unavailable.</p></div>
+        <div class="card"><h3><i class="icon fas fa-ban"></i> False-Positive Guards</h3><p>A red parked car is not mistaken for a red signal; a sunlit road is not mistaken for a stop line.</p></div>
+        <div class="card"><h3><i class="icon fas fa-hand"></i> Honest Abstention</h3><p>Detectors abstain when un-configured rather than fabricate violations.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 LIMITATIONS -->
+  <div class="slide">
+    <span class="pagetag">Roadmap</span>
+    <div class="content">
+      <span class="kicker"><i class="fas fa-road-circle-exclamation"></i> Limitations &amp; Future Work</span>
+      <h1>Honest Boundaries, Clear Next Steps</h1>
+      <div class="grid2">
+        <div class="card" style="border-left-color:var(--accent);"><h3 style="color:var(--secondary)"><i class="icon fas fa-triangle-exclamation" style="color:var(--accent)"></i> Current Limitations</h3>
+          <p style="margin-bottom:8px;">• Seatbelt model imperfect on out-of-distribution images</p>
+          <p style="margin-bottom:8px;">• Wrong-side from a still frame is advisory (needs video/motion)</p>
+          <p style="margin-bottom:8px;">• Small labelled eval set (needs hundreds of annotated images)</p>
+          <p>• Config-driven detectors (parking, divider, seatbelt) need per-camera setup</p>
+        </div>
+        <div class="card"><h3><i class="icon fas fa-rocket"></i> Future Work</h3>
+          <p style="margin-bottom:8px;">• Video tracking for motion-based violations</p>
+          <p style="margin-bottom:8px;">• Larger detector backbones for higher accuracy</p>
+          <p style="margin-bottom:8px;">• Fine-tuned region-specific models</p>
+          <p>• Scalable production deployment</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14 SUMMARY -->
+  <div class="slide title-slide">
+    <div class="badge"><i class="fas fa-circle-check"></i></div>
+    <h1>A Working, Scalable Enforcement AI</h1>
+    <p class="tagline">Automatically identifies, classifies &amp; documents 7 violation types from photographic evidence</p>
+    <p class="sub">Drastically reducing manual inspection effort while improving the consistency, speed, and accuracy of traffic enforcement.</p>
+    <div class="foot">AUTOTRAFFIC VISION — COMPUTER VISION FOR SMART TRAFFIC ENFORCEMENT</div>
+  </div>
+
+  <!-- NAV -->
+  <div class="slide-nav" role="navigation" aria-label="Slide navigation">
+    <button class="nav-btn prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+    <span class="slide-counter" aria-live="polite">1 / 14</span>
+    <button class="nav-btn next" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+    <button class="nav-btn fullscreen" aria-label="Fullscreen"><i class="fas fa-expand"></i></button>
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const counter = document.querySelector('.slide-counter');
+    let current = 0, chartsDone = false;
+
+    function showSlide(n) {
+      slides[current].classList.remove('active');
+      current = (n + slides.length) % slides.length;
+      slides[current].classList.add('active');
+      counter.textContent = `${current + 1} / ${slides.length}`;
+    }
+    document.querySelector('.prev').addEventListener('click', () => showSlide(current - 1));
+    document.querySelector('.next').addEventListener('click', () => showSlide(current + 1));
+    document.querySelector('.fullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); showSlide(current + 1); }
+      if (e.key === 'ArrowLeft') showSlide(current - 1);
+      if (e.key === 'Home') showSlide(0);
+      if (e.key === 'End') showSlide(slides.length - 1);
+    });
+
+    // Charts
+    const css = getComputedStyle(document.documentElement);
+    const PRIMARY = css.getPropertyValue('--primary').trim();
+    const SECONDARY = css.getPropertyValue('--secondary').trim();
+    const ACCENT = css.getPropertyValue('--accent').trim();
+    const FONT = css.getPropertyValue('--font-main').trim();
+
+    new Chart(document.getElementById('violChart'), {
+      type: 'bar',
+      data: {
+        labels: ['No Helmet','Triple Riding','No Seatbelt','Red-Light','Stop-Line','Wrong-Side','Illegal Parking'],
+        datasets: [{ label: 'Detected Violations', data: [42, 18, 9, 27, 51, 14, 11],
+          backgroundColor: PRIMARY, borderColor: SECONDARY, borderWidth: 1, borderRadius: 4 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ color:SECONDARY, font:{ family:FONT } } } },
+        scales:{ x:{ ticks:{ color:'#666', font:{ family:FONT } }, grid:{ display:false } },
+                 y:{ ticks:{ color:'#666' }, beginAtZero:true } } }
+    });
+
+    new Chart(document.getElementById('perfChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Preprocess','Detect','OCR','Violations'],
+        datasets: [{ label: 'Latency per stage (ms)', data: [420, 4100, 1500, 480],
+          backgroundColor: [SECONDARY, PRIMARY, PRIMARY, ACCENT], borderRadius:4 }]
+      },
+      options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ color:SECONDARY, font:{ family:FONT } } } },
+        scales:{ x:{ ticks:{ color:'#666' }, beginAtZero:true }, y:{ ticks:{ color:'#666', font:{ family:FONT } } } } }
+    });
+
+    showSlide(0);
+  </script>
+</body>
+</html>

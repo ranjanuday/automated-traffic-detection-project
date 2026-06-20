@@ -1,0 +1,32 @@
+[project]
+name = "traffic-violation-cv"
+version = "0.1.0"
+description = "Automated photo identification & classification of traffic violations using computer vision"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+    "pillow>=10.0",
+    "numpy>=1.24",
+    "opencv-python-headless>=4.9",
+]
+
+# Heavy ML extras. Installed separately so the app can boot in "demo mode"
+# even before these land. Install with:  uv pip install -e ".[ml]"
+[project.optional-dependencies]
+ml = [
+    "ultralytics>=8.1",
+    "easyocr>=1.7",
+    "torch>=2.1",
+    "yolov5>=7.0",   # loads the YOLOv5 license-plate detector checkpoint
+    "einops>=0.7",   # required by the Restormer deraining/deblurring arch
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]

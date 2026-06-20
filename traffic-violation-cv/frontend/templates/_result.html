@@ -1,0 +1,42 @@
+<div class="bg-white rounded-lg shadow p-5">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-lg font-bold">Result
+      <span class="text-sm font-normal text-slate-500">(evidence #{{ eid }})</span>
+    </h2>
+    <a href="/evidence/{{ eid }}" class="text-sm text-blue-700 underline">Permalink</a>
+  </div>
+  <div class="grid md:grid-cols-3 gap-5">
+    <div class="md:col-span-2">
+      <img src="/media/annotated/{{ anno_name }}" alt="Annotated traffic image with {{ frame.violations|length }} violations highlighted"
+           class="w-full rounded border border-slate-200">
+    </div>
+    <div>
+      <h3 class="font-semibold mb-2">Violations ({{ frame.violations|length }})</h3>
+      {% if frame.violations %}
+      <ul class="space-y-2">
+        {% for v in frame.violations %}
+        <li class="border-l-4 pl-2 py-1 text-sm"
+            style="border-color: rgb({{ vmeta[v.vtype].color[2] }},{{ vmeta[v.vtype].color[1] }},{{ vmeta[v.vtype].color[0] }})">
+          <div class="font-medium">{{ vmeta[v.vtype].label }}
+            <span class="text-slate-500">{{ '%.0f' % (v.confidence*100) }}%</span>
+          </div>
+          {% if v.plate %}<div class="text-xs">Plate: <strong>{{ v.plate }}</strong></div>{% endif %}
+          <div class="text-xs text-slate-500">{{ v.note }}</div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-sm text-green-700">No violations detected.</p>
+      {% endif %}
+
+      <h3 class="font-semibold mt-4 mb-1">Pipeline metrics</h3>
+      <dl class="text-xs text-slate-600 space-y-0.5">
+        <div>Objects: {{ metrics.n_objects }}</div>
+        <div>Detector: {{ metrics.detector_backend }}</div>
+        <div>OCR: {{ metrics.ocr_backend }}</div>
+        <div>Total time: {{ metrics.timings_ms.total }} ms</div>
+        <div>Enhancements: {{ frame.meta.preprocess.steps|join(', ') }}</div>
+      </dl>
+    </div>
+  </div>
+</div>

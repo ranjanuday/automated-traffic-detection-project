@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Evidence #{{ ev.id }} - Traffic Violation CV{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-bold">Evidence #{{ ev.id }}</h1>
+  <a href="/records" class="text-sm text-blue-700 underline">Back to records</a>
+</div>
+
+<div class="grid md:grid-cols-3 gap-5">
+  <div class="md:col-span-2 bg-white rounded-lg shadow p-4">
+    <img src="/media/annotated/{{ ev.annotated_path }}"
+         alt="Annotated evidence image for record {{ ev.id }}"
+         class="w-full rounded border border-slate-200">
+    <p class="text-xs text-slate-500 mt-2">Captured/processed: {{ ev.created_at }} UTC</p>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4">
+    <h2 class="font-semibold mb-2">Violations ({{ ev.violations|length }})</h2>
+    {% if ev.violations %}
+    <ul class="space-y-2">
+      {% for v in ev.violations %}
+      <li class="border-l-4 pl-2 py-1 text-sm"
+          style="border-color: rgb({{ vmeta[v.vtype].color[2] }},{{ vmeta[v.vtype].color[1] }},{{ vmeta[v.vtype].color[0] }})">
+        <div class="font-medium">{{ vmeta[v.vtype].label if v.vtype in vmeta else v.vtype }}
+          <span class="text-slate-500">{{ '%.0f' % (v.confidence*100) }}%</span></div>
+        {% if v.plate %}<div class="text-xs">Plate: <strong>{{ v.plate }}</strong></div>{% endif %}
+        <div class="text-xs text-slate-500">{{ v.note }}</div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-sm text-green-700">No violations.</p>
+    {% endif %}
+    <div class="mt-4 text-xs text-slate-500 border-t pt-2">
+      Objects detected: {{ ev.n_objects }}<br>Backend: {{ ev.backend }}
+    </div>
+  </div>
+</div>
+{% endblock %}
