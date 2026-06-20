@@ -41,16 +41,32 @@ if not os.environ.get("TVCV_PASSWORD"):
 MAX_UPLOAD_BYTES = int(os.environ.get("TVCV_MAX_UPLOAD_MB", "15")) * 1024 * 1024
 
 
-def require_auth(creds: HTTPBasicCredentials = Depends(_security)) -> str:
-    ok_user = secrets.compare_digest(creds.username, AUTH_USER)
-    ok_pass = secrets.compare_digest(creds.password, AUTH_PASS)
-    if not (ok_user and ok_pass):
+# Auth toggle: set TVCV_AUTH=1 to re-enable HTTP Basic auth. Default is OFF
+# for easy local demo use (server binds to 127.0.0.1 only).
+AUTH_ENABLED = os.environ.get("TVCV_AUTH", "0") == "1"
+
+
+def require_auth(request: Request) -> str:
+    """No-op unless TVCV_AUTH=1. Keeps route decorators intact either way."""
+    if not AUTH_ENABLED:
+        return "anonymous"
+    header = request.headers.get("authorization", "")
+    ok = False
+    if header.startswith("Basic "):
+        import base64
+        try:
+            user, _, pw = base64.b64decode(header[6:]).decode().partition(":")
+            ok = (secrets.compare_digest(user, AUTH_USER) and
+                  secrets.compare_digest(pw, AUTH_PASS))
+        except Exception:
+            ok = False
+    if not ok:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
             headers={"WWW-Authenticate": "Basic"},
         )
-    return creds.username
+    return user
 
 app.mount("/static", StaticFiles(directory=str(config.ROOT / "frontend" / "static")), name="static")
 app.mount("/media/uploads", StaticFiles(directory=str(config.UPLOAD_DIR)), name="uploads")
@@ -60,7 +76,7 @@ app.mount("/media/annotated", StaticFiles(directory=str(config.ANNOTATED_DIR)), 
 @app.middleware("http")
 async def _protect_media(request: Request, call_next):
     """Uploaded/annotated images contain plates (PII) -> require Basic auth."""
-    if request.url.path.startswith("/media/"):
+    if AUTH_ENABLED and request.url.path.startswith("/media/"):
         header = request.headers.get("authorization", "")
         ok = False
         if header.startswith("Basic "):
